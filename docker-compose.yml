@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: calendly_clone_db
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?POSTGRES_USER is required} -d ${POSTGRES_DB:?POSTGRES_DB is required}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    container_name: calendly_clone_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: >
+      sh -c "uv sync &&
+             uv run python manage.py migrate &&
+             uv run python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - backend_venv:/opt/venv
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: calendly_clone_frontend
+    restart: unless-stopped
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  backend_venv:
+  frontend_node_modules:
