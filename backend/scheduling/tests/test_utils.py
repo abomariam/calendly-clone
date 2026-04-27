@@ -1,4 +1,5 @@
 from datetime import date, datetime, time, timedelta
+from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ValidationError
@@ -7,7 +8,14 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from scheduling.models import Booking, Event, EventAvailabilityRule
-from scheduling.utils import generate_available_slots, get_event_query_window, normalize_to_utc
+from scheduling.utils import (
+    SlotAlreadyBookedError,
+    create_booking,
+    generate_available_slots,
+    get_event_query_window,
+    is_bookable_slot,
+    normalize_to_utc,
+)
 
 
 class SchedulingUtilityTests(TestCase):
@@ -226,3 +234,119 @@ class SlotGenerationTests(TestCase):
         self.assertEqual(len(slots), 23)
         self.assertEqual(EventAvailabilityRule.objects.filter(event=event).count(), 7)
         self.assertEqual(Booking.objects.filter(event=event).count(), 0)
+
+
+class BookingServiceTests(TestCase):
+    def make_event(self, **overrides):
+        defaults = {
+            "name": "Intro Call",
+            "slug": "intro-call",
+            "timezone": "Africa/Cairo",
+            "availability_start_date": date(2026, 5, 1),
+            "availability_end_date": date(2026, 5, 31),
+        }
+        defaults.update(overrides)
+        return Event.objects.create(**defaults)
+
+    def add_rule(self, event, weekday=EventAvailabilityRule.Weekday.MONDAY, start=time(9, 0), end=time(11, 0)):
+        return EventAvailabilityRule.objects.create(
+            event=event,
+            weekday=weekday,
+            start_time=start,
+            end_time=end,
+        )
+
+    def booking_payload(self, starts_at):
+        return {
+            "invitee_name": "Mona Hassan",
+            "invitee_email": "mona@example.com",
+            "note": "I want to discuss pricing.",
+            "invitee_timezone": "Europe/London",
+            "starts_at": starts_at,
+        }
+
+    @freeze_time("2026-05-01T00:00:00Z")
+    def test_is_bookable_slot_accepts_available_slot(self):
+        event = self.make_event()
+        self.add_rule(event)
+
+        self.assertTrue(is_bookable_slot(event, datetime(2026, 5, 4, 6, 0, tzinfo=timezone.UTC)))
+
+    @freeze_time("2026-05-01T00:00:00Z")
+    def test_is_bookable_slot_rejects_non_slot_start(self):
+        event = self.make_event()
+        self.add_rule(event)
+
+        self.assertFalse(is_bookable_slot(event, datetime(2026, 5, 4, 6, 15, tzinfo=timezone.UTC)))
+
+    @freeze_time("2026-05-05T00:00:00Z")
+    def test_is_bookable_slot_rejects_past_slot(self):
+        event = self.make_event()
+        self.add_rule(event)
+
+        self.assertFalse(is_bookable_slot(event, datetime(2026, 5, 4, 6, 0, tzinfo=timezone.UTC)))
+
+    @freeze_time("2026-05-01T00:00:00Z")
+    def test_create_booking_creates_valid_booking_with_calculated_end(self):
+        event = self.make_event(duration_minutes=30)
+        self.add_rule(event)
+        starts_at = datetime(2026, 5, 4, 6, 0, tzinfo=timezone.UTC)
+
+        booking = create_booking(event, self.booking_payload(starts_at))
+
+        self.assertEqual(booking.event, event)
+        self.assertEqual(booking.starts_at, starts_at)
+        self.assertEqual(booking.ends_at, starts_at + timedelta(minutes=30))
+        self.assertEqual(booking.invitee_email, "mona@example.com")
+
+    @freeze_time("2026-05-01T00:00:00Z")
+    def test_create_booking_rejects_non_slot_start(self):
+        event = self.make_event()
+        self.add_rule(event)
+
+        with self.assertRaises(ValidationError) as context:
+            create_booking(
+                event,
+                self.booking_payload(datetime(2026, 5, 4, 6, 15, tzinfo=timezone.UTC)),
+            )
+
+        self.assertEqual(
+            context.exception.message_dict["starts_at"],
+            ["Requested start time is not an available slot."],
+        )
+
+    @freeze_time("2026-05-05T00:00:00Z")
+    def test_create_booking_rejects_past_slot_as_unavailable(self):
+        event = self.make_event()
+        self.add_rule(event)
+
+        with self.assertRaises(ValidationError) as context:
+            create_booking(
+                event,
+                self.booking_payload(datetime(2026, 5, 4, 6, 0, tzinfo=timezone.UTC)),
+            )
+
+        self.assertEqual(
+            context.exception.message_dict["starts_at"],
+            ["Requested start time is not an available slot."],
+        )
+
+    @freeze_time("2026-05-01T00:00:00Z")
+    def test_create_booking_converts_duplicate_integrity_error_to_domain_error(self):
+        event = self.make_event()
+        self.add_rule(event)
+        starts_at = datetime(2026, 5, 4, 6, 0, tzinfo=timezone.UTC)
+        Booking.objects.create(
+            event=event,
+            invitee_name="Mona Hassan",
+            invitee_email="mona@example.com",
+            invitee_timezone="Europe/London",
+            starts_at=starts_at,
+            ends_at=starts_at + timedelta(minutes=event.duration_minutes),
+        )
+
+        with patch("scheduling.utils.is_bookable_slot", return_value=True):
+            with self.assertRaises(SlotAlreadyBookedError) as context:
+                create_booking(event, self.booking_payload(starts_at))
+
+        self.assertEqual(str(context.exception), "Slot is already booked.")

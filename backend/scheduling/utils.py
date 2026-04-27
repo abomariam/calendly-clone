@@ -2,9 +2,14 @@ from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError
 from django.utils import timezone
 
 MAX_AVAILABILITY_WINDOW_DAYS = 31
+
+
+class SlotAlreadyBookedError(Exception):
+    pass
 
 
 def default_availability_start_date():
@@ -99,3 +104,32 @@ def generate_available_slots(event, start_utc, end_utc):
         local_date += timedelta(days=1)
 
     return slots
+
+
+def is_bookable_slot(event, starts_at_utc):
+    starts_at_utc = normalize_to_utc(starts_at_utc)
+    if starts_at_utc < timezone.now():
+        return False
+
+    ends_at_utc = starts_at_utc + timedelta(minutes=event.duration_minutes)
+    return any(
+        slot["starts_at"] == starts_at_utc
+        for slot in generate_available_slots(event, starts_at_utc, ends_at_utc)
+    )
+
+
+def create_booking(event, validated_payload):
+    starts_at_utc = normalize_to_utc(validated_payload["starts_at"])
+    if not is_bookable_slot(event, starts_at_utc):
+        raise ValidationError({"starts_at": "Requested start time is not an available slot."})
+
+    booking_data = {
+        **validated_payload,
+        "starts_at": starts_at_utc,
+        "ends_at": starts_at_utc + timedelta(minutes=event.duration_minutes),
+    }
+
+    try:
+        return event.bookings.create(**booking_data)
+    except IntegrityError as exc:
+        raise SlotAlreadyBookedError("Slot is already booked.") from exc
