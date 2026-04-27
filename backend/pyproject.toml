@@ -8,6 +8,7 @@ dependencies = [
     "djangorestframework==3.16.1",
     "psycopg[binary]==3.3.3",
     "gunicorn==25.3.0",
+    "freezegun==1.5.5",
 ]
 
 [tool.uv]

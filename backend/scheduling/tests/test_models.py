@@ -5,7 +5,7 @@ from django.db import IntegrityError
 from django.test import TestCase
 from django.utils import timezone
 
-from .models import Booking, Event, EventAvailabilityRule
+from scheduling.models import Booking, Event, EventAvailabilityRule
 
 
 class EventModelTests(TestCase):
