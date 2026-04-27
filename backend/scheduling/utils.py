@@ -7,10 +7,6 @@ from django.utils import timezone
 MAX_AVAILABILITY_WINDOW_DAYS = 31
 
 
-class SlotAlreadyBookedError(Exception):
-    pass
-
-
 def default_availability_start_date():
     return timezone.localdate()
 
@@ -112,6 +108,7 @@ def is_bookable_slot(event, starts_at_utc):
 
 def create_booking(event, validated_payload):
     starts_at_utc = normalize_to_utc(validated_payload["starts_at"])
+
     if not is_bookable_slot(event, starts_at_utc):
         raise ValidationError({"starts_at": "Requested start time is not an available slot."})
 
@@ -124,4 +121,4 @@ def create_booking(event, validated_payload):
     try:
         return event.bookings.create(**booking_data)
     except IntegrityError as exc:
-        raise SlotAlreadyBookedError("Slot is already booked.") from exc
+        raise ValidationError({"starts_at": "Requested start time is not an available slot."}) from exc

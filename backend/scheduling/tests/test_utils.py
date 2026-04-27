@@ -1,5 +1,4 @@
 from datetime import date, datetime, time, timedelta
-from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ValidationError
@@ -9,7 +8,6 @@ from freezegun import freeze_time
 
 from scheduling.models import Booking, Event, EventAvailabilityRule
 from scheduling.utils import (
-    SlotAlreadyBookedError,
     create_booking,
     generate_available_slots,
     get_event_query_window,
@@ -332,7 +330,7 @@ class BookingServiceTests(TestCase):
         )
 
     @freeze_time("2026-05-01T00:00:00Z")
-    def test_create_booking_converts_duplicate_integrity_error_to_domain_error(self):
+    def test_create_booking_rejects_duplicate_start_as_unavailable(self):
         event = self.make_event()
         self.add_rule(event)
         starts_at = datetime(2026, 5, 4, 6, 0, tzinfo=timezone.UTC)
@@ -345,8 +343,10 @@ class BookingServiceTests(TestCase):
             ends_at=starts_at + timedelta(minutes=event.duration_minutes),
         )
 
-        with patch("scheduling.utils.is_bookable_slot", return_value=True):
-            with self.assertRaises(SlotAlreadyBookedError) as context:
-                create_booking(event, self.booking_payload(starts_at))
+        with self.assertRaises(ValidationError) as context:
+            create_booking(event, self.booking_payload(starts_at))
 
-        self.assertEqual(str(context.exception), "Slot is already booked.")
+        self.assertEqual(
+            context.exception.message_dict["starts_at"],
+            ["Requested start time is not an available slot."],
+        )

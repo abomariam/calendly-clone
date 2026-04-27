@@ -12,7 +12,7 @@ from .serializers import (
     BookingOutputSerializer,
     EventDetailSerializer,
 )
-from .utils import SlotAlreadyBookedError, create_booking, generate_available_slots
+from .utils import create_booking, generate_available_slots
 
 
 def _validation_error_detail(exc):
@@ -59,8 +59,6 @@ class EventBookingCreateView(APIView):
 
         try:
             booking = create_booking(event, serializer.validated_data)
-        except SlotAlreadyBookedError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
         except DjangoValidationError as exc:
             return Response(_validation_error_detail(exc), status=status.HTTP_400_BAD_REQUEST)
 
