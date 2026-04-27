@@ -46,6 +46,7 @@ Build a Calendly-style scheduling product with a Django REST backend, React fron
 - Backend startup runs `uv sync`; frontend startup runs `npm install`. After dependency changes, still rebuild the relevant image so the image remains reproducible.
 - Docker Compose passes `.env` into services with `env_file`.
 - Keep environment variables minimal. Avoid duplicate sources for the same value.
+- Run backend `uv` commands through Docker Compose, for example `docker compose exec backend uv lock` or `docker compose exec backend uv run python manage.py check`.
 
 ## Verification
 
