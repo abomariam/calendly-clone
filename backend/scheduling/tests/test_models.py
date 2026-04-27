@@ -16,14 +16,12 @@ class EventModelTests(TestCase):
         self.assertEqual(event.availability_end_date, timezone.localdate() + timedelta(days=60))
 
     def test_rejects_invalid_timezone(self):
-        event = Event(name="Intro Call", slug="intro-call", timezone="Not/AZone")
-
         with self.assertRaises(ValidationError) as context:
-            event.full_clean()
+            Event(name="Intro Call", slug="intro-call", timezone="Not/AZone")
 
         self.assertEqual(
-            context.exception.message_dict["timezone"],
-            ["Not/AZone is not a valid IANA timezone."],
+            context.exception.messages,
+            ["Invalid timezone 'Not/AZone'"],
         )
 
     def test_rejects_invalid_date_range(self):
@@ -135,19 +133,17 @@ class BookingModelTests(TestCase):
     def test_rejects_invalid_invitee_timezone(self):
         event = self.make_event()
         starts_at = timezone.datetime(2026, 5, 4, 7, 0, tzinfo=timezone.UTC)
-        booking = Booking(
-            event=event,
-            invitee_name="Mona Hassan",
-            invitee_email="mona@example.com",
-            invitee_timezone="Not/AZone",
-            starts_at=starts_at,
-            ends_at=starts_at + timedelta(minutes=event.duration_minutes),
-        )
-
         with self.assertRaises(ValidationError) as context:
-            booking.full_clean()
+            Booking(
+                event=event,
+                invitee_name="Mona Hassan",
+                invitee_email="mona@example.com",
+                invitee_timezone="Not/AZone",
+                starts_at=starts_at,
+                ends_at=starts_at + timedelta(minutes=event.duration_minutes),
+            )
 
         self.assertEqual(
-            context.exception.message_dict["invitee_timezone"],
-            ["Not/AZone is not a valid IANA timezone."],
+            context.exception.messages,
+            ["Invalid timezone 'Not/AZone'"],
         )

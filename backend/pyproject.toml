@@ -9,6 +9,8 @@ dependencies = [
     "psycopg[binary]==3.3.3",
     "gunicorn==25.3.0",
     "freezegun==1.5.5",
+    "django-timezone-field==7.2.1",
+    "tzdata==2026.2",
 ]
 
 [tool.uv]

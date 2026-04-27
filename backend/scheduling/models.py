@@ -4,8 +4,9 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
+from timezone_field import TimeZoneField
 
-from .utils import default_availability_end_date, default_availability_start_date, validate_timezone
+from .utils import default_availability_end_date, default_availability_start_date
 
 
 class Event(models.Model):
@@ -15,7 +16,7 @@ class Event(models.Model):
     duration_minutes = models.PositiveIntegerField(default=30, validators=[MinValueValidator(1)])
     availability_start_date = models.DateField(default=default_availability_start_date)
     availability_end_date = models.DateField(default=default_availability_end_date)
-    timezone = models.CharField(max_length=64, default="UTC", validators=[validate_timezone])
+    timezone = TimeZoneField(default="UTC")
     is_active = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -73,7 +74,7 @@ class Booking(models.Model):
     invitee_name = models.CharField(max_length=255)
     invitee_email = models.EmailField()
     note = models.TextField(blank=True)
-    invitee_timezone = models.CharField(max_length=64, validators=[validate_timezone])
+    invitee_timezone = TimeZoneField()
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
