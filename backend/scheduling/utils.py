@@ -57,3 +57,45 @@ def get_event_query_window(event, start=None, end=None):
         return clamped_start, clamped_start
 
     return clamped_start, clamped_end
+
+
+def generate_available_slots(event, start_utc, end_utc):
+    start_utc = normalize_to_utc(start_utc)
+    end_utc = normalize_to_utc(end_utc)
+    if end_utc <= start_utc:
+        raise ValidationError("End datetime must be after start datetime.")
+
+    event_timezone = ZoneInfo(event.timezone)
+    duration = timedelta(minutes=event.duration_minutes)
+    local_start_date = start_utc.astimezone(event_timezone).date()
+    local_end_date = end_utc.astimezone(event_timezone).date()
+    rules_by_weekday = {rule.weekday: rule for rule in event.availability_rules.all()}
+    booked_starts = set(
+        event.bookings.filter(
+            starts_at__gte=start_utc,
+            starts_at__lt=end_utc,
+        ).values_list("starts_at", flat=True)
+    )
+
+    slots = []
+    local_date = local_start_date
+    while local_date <= local_end_date:
+        rule = rules_by_weekday.get(local_date.weekday())
+        if rule and event.availability_start_date <= local_date <= event.availability_end_date:
+            rule_start = datetime.combine(local_date, rule.start_time, tzinfo=event_timezone)
+            rule_end = datetime.combine(local_date, rule.end_time, tzinfo=event_timezone)
+            slot_start = rule_start
+            while slot_start + duration <= rule_end:
+                slot_end = slot_start + duration
+                slot_start_utc = slot_start.astimezone(timezone.UTC)
+                slot_end_utc = slot_end.astimezone(timezone.UTC)
+                if (
+                    start_utc <= slot_start_utc
+                    and slot_end_utc <= end_utc
+                    and slot_start_utc not in booked_starts
+                ):
+                    slots.append({"starts_at": slot_start_utc, "ends_at": slot_end_utc})
+                slot_start += duration
+        local_date += timedelta(days=1)
+
+    return slots
