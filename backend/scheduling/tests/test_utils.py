@@ -100,6 +100,18 @@ class SchedulingUtilityTests(TestCase):
         self.assertEqual(start_utc, datetime(2026, 4, 30, 21, 0, tzinfo=timezone.UTC))
         self.assertEqual(end_utc, start_utc)
 
+    def test_query_window_returns_empty_window_when_after_event_date_range(self):
+        event = self.make_event()
+
+        start_utc, end_utc = get_event_query_window(
+            event,
+            start=datetime(2026, 6, 1, 0, 0, tzinfo=timezone.UTC),
+            end=datetime(2026, 7, 1, 0, 0, tzinfo=timezone.UTC),
+        )
+
+        self.assertEqual(start_utc, datetime(2026, 6, 1, 0, 0, tzinfo=timezone.UTC))
+        self.assertEqual(end_utc, start_utc)
+
 
 class SlotGenerationTests(TestCase):
     def make_event(self, **overrides):
@@ -279,6 +291,16 @@ class SlotGenerationTests(TestCase):
         self.assertEqual(len(slots), 23)
         self.assertEqual(EventAvailabilityRule.objects.filter(event=event).count(), 7)
         self.assertEqual(Booking.objects.filter(event=event).count(), 0)
+
+    @freeze_time("2026-05-01T00:00:00Z")
+    def test_empty_query_window_generates_no_slots(self):
+        event = self.make_event(duration_minutes=30)
+        self.add_rule(event)
+        window = datetime(2026, 6, 1, 0, 0, tzinfo=timezone.UTC)
+
+        slots = generate_available_slots(event, start_utc=window, end_utc=window)
+
+        self.assertEqual(slots, [])
 
 
 class BookingServiceTests(TestCase):

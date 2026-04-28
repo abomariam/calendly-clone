@@ -124,6 +124,28 @@ class PublicEventApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json(), {"non_field_errors": ["Availability query window cannot exceed 31 days."]})
 
+    def test_availability_returns_empty_slots_for_window_after_event_date_range(self):
+        event = self.make_event()
+        self.add_rule(event)
+
+        response = self.client.get(
+            reverse("event-availability", kwargs={"slug": event.slug}),
+            {
+                "start": "2026-06-01T00:00:00Z",
+                "end": "2026-07-01T00:00:00Z",
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.json(),
+            {
+                "event_timezone": "Africa/Cairo",
+                "duration_minutes": 30,
+                "slots": [],
+            },
+        )
+
     @freeze_time("2026-05-01T00:00:00Z")
     def test_booking_creates_booking(self):
         event = self.make_event()

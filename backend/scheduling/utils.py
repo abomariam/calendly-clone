@@ -55,8 +55,10 @@ def get_event_query_window(event, start=None, end=None):
 def generate_available_slots(event, start_utc, end_utc):
     start_utc = normalize_to_utc(start_utc)
     end_utc = normalize_to_utc(end_utc)
-    if end_utc <= start_utc:
+    if end_utc < start_utc:
         raise ValidationError("End datetime must be after start datetime.")
+    if end_utc == start_utc:
+        return []
 
     event_timezone = event.timezone
     duration = timedelta(minutes=event.duration_minutes)
