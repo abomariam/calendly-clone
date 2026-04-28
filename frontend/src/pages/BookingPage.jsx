@@ -3,8 +3,19 @@ import { useEffect, useState } from "react";
 
 import { fetchEventDetails } from "../api/booking.js";
 import BookingShellStatus from "../components/booking/BookingShellStatus.jsx";
+import CalendarMonth from "../components/booking/CalendarMonth.jsx";
 import EventSummary from "../components/booking/EventSummary.jsx";
 import { getDefaultInviteeTimezone } from "../utils/dateTime.js";
+
+function getMonthStart(date = new Date()) {
+  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), 1));
+}
+
+function getMonthStartFromDateKey(dateKey) {
+  const [year, month] = dateKey.split("-").map(Number);
+
+  return new Date(Date.UTC(year, month - 1, 1));
+}
 
 export default function BookingPage({ slug }) {
   const [eventRequest, setEventRequest] = useState({
@@ -15,8 +26,10 @@ export default function BookingPage({ slug }) {
   });
   const [availabilityLoading] = useState(false);
   const [availabilityError] = useState("");
-  const [selectedDate] = useState("");
-  const [selectedSlot] = useState(null);
+  const [availableDates] = useState([]);
+  const [visibleMonth, setVisibleMonth] = useState(() => getMonthStart());
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedSlot, setSelectedSlot] = useState(null);
   const [selectedTimezone, setSelectedTimezone] = useState("");
   const [activeStep, setActiveStep] = useState("date-time");
   const [bookingResult] = useState(null);
@@ -36,6 +49,7 @@ export default function BookingPage({ slug }) {
           loading: false,
           slug,
         });
+        setVisibleMonth(getMonthStartFromDateKey(eventDetails.availability_start_date));
         setSelectedTimezone(getDefaultInviteeTimezone(eventDetails.timezone));
       })
       .catch((error) => {
@@ -59,6 +73,10 @@ export default function BookingPage({ slug }) {
   const eventLoading = eventRequest.slug !== slug || eventRequest.loading;
   const eventError = eventRequest.slug === slug ? eventRequest.error : "";
   const event = eventRequest.slug === slug ? eventRequest.event : null;
+  const handleDateSelect = (dateKey) => {
+    setSelectedDate(dateKey);
+    setSelectedSlot(null);
+  };
 
   if (eventLoading || (!event && !eventError)) {
     return (
@@ -96,7 +114,14 @@ export default function BookingPage({ slug }) {
         <section className="booking-panel" aria-labelledby="booking-shell-title">
           <p className="booking-eyebrow">Booking flow</p>
           <h2 id="booking-shell-title">Choose a date and time</h2>
-          <p className="booking-muted">Calendar and availability controls land in the next steps.</p>
+          <CalendarMonth
+            availableDates={availableDates}
+            monthDate={visibleMonth}
+            onDateSelect={handleDateSelect}
+            onMonthChange={setVisibleMonth}
+            selectedDate={selectedDate}
+          />
+          <p className="booking-muted">Available slots will load in the next step.</p>
           {availabilityError ? <p role="alert">{availabilityError}</p> : null}
           <BookingShellStatus
             activeStep={activeStep}
