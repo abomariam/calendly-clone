@@ -121,6 +121,7 @@ class SlotGenerationTests(TestCase):
             end_time=end,
         )
 
+    @freeze_time("2026-05-01T00:00:00Z")
     def test_generates_four_30_minute_slots_for_two_hour_rule(self):
         event = self.make_event(duration_minutes=30)
         self.add_rule(event)
@@ -153,6 +154,7 @@ class SlotGenerationTests(TestCase):
             ],
         )
 
+    @freeze_time("2026-05-01T00:00:00Z")
     def test_generates_two_45_minute_slots_for_two_hour_rule(self):
         event = self.make_event(duration_minutes=45)
         self.add_rule(event)
@@ -171,6 +173,49 @@ class SlotGenerationTests(TestCase):
             ],
         )
 
+    @freeze_time("2026-05-04T06:45:00Z")
+    def test_excludes_slots_before_current_time_in_event_timezone(self):
+        event = self.make_event(duration_minutes=30)
+        self.add_rule(event)
+
+        slots = generate_available_slots(
+            event,
+            start_utc=datetime(2026, 5, 4, 0, 0, tzinfo=timezone.UTC),
+            end_utc=datetime(2026, 5, 5, 0, 0, tzinfo=timezone.UTC),
+        )
+
+        self.assertEqual(
+            [slot["starts_at"] for slot in slots],
+            [
+                datetime(2026, 5, 4, 7, 0, tzinfo=timezone.UTC),
+                datetime(2026, 5, 4, 7, 30, tzinfo=timezone.UTC),
+            ],
+        )
+
+    @freeze_time("2026-05-04T04:30:00Z")
+    def test_excludes_past_slots_using_non_utc_event_timezone(self):
+        event = self.make_event(
+            duration_minutes=30,
+            timezone="America/New_York",
+        )
+        self.add_rule(event, start=time(0, 0), end=time(2, 0))
+
+        slots = generate_available_slots(
+            event,
+            start_utc=datetime(2026, 5, 4, 0, 0, tzinfo=timezone.UTC),
+            end_utc=datetime(2026, 5, 5, 0, 0, tzinfo=timezone.UTC),
+        )
+
+        self.assertEqual(
+            [slot["starts_at"] for slot in slots],
+            [
+                datetime(2026, 5, 4, 4, 30, tzinfo=timezone.UTC),
+                datetime(2026, 5, 4, 5, 0, tzinfo=timezone.UTC),
+                datetime(2026, 5, 4, 5, 30, tzinfo=timezone.UTC),
+            ],
+        )
+
+    @freeze_time("2026-05-01T00:00:00Z")
     def test_excludes_booked_slots(self):
         event = self.make_event(duration_minutes=30)
         self.add_rule(event)
@@ -193,6 +238,7 @@ class SlotGenerationTests(TestCase):
         self.assertNotIn(booked_start, [slot["starts_at"] for slot in slots])
         self.assertEqual(len(slots), 3)
 
+    @freeze_time("2026-05-01T00:00:00Z")
     def test_excludes_slots_outside_event_date_range(self):
         event = self.make_event(
             duration_minutes=30,
@@ -218,6 +264,7 @@ class SlotGenerationTests(TestCase):
             ],
         )
 
+    @freeze_time("2026-05-01T00:00:00Z")
     def test_24_7_availability_generates_slots_without_storing_slot_rows(self):
         event = self.make_event(duration_minutes=60)
         for weekday in EventAvailabilityRule.Weekday.values:

@@ -60,6 +60,7 @@ def generate_available_slots(event, start_utc, end_utc):
 
     event_timezone = event.timezone
     duration = timedelta(minutes=event.duration_minutes)
+    now_local = timezone.now().astimezone(event_timezone)
     local_start_date = start_utc.astimezone(event_timezone).date()
     local_end_date = end_utc.astimezone(event_timezone).date()
     rules_by_weekday = {rule.weekday: rule for rule in event.availability_rules.all()}
@@ -83,7 +84,8 @@ def generate_available_slots(event, start_utc, end_utc):
                 slot_start_utc = slot_start.astimezone(timezone.UTC)
                 slot_end_utc = slot_end.astimezone(timezone.UTC)
                 if (
-                    start_utc <= slot_start_utc
+                    now_local <= slot_start
+                    and start_utc <= slot_start_utc
                     and slot_end_utc <= end_utc
                     and slot_start_utc not in booked_starts
                 ):
