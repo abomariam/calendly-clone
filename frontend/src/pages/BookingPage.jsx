@@ -153,6 +153,7 @@ export default function BookingPage({ slug }) {
   }, [availabilityRange.key, availabilityRequest, selectedTimezone]);
   const availableDates = useMemo(() => Object.keys(slotsByDate).sort(), [slotsByDate]);
   const selectedDateSlots = selectedDate ? slotsByDate[selectedDate] || [] : [];
+  const showTimeSlots = activeStep === "date-time" && Boolean(selectedDate);
 
   const handleDateSelect = (dateKey) => {
     setSelectedDate(dateKey);
@@ -246,7 +247,7 @@ export default function BookingPage({ slug }) {
 
   return (
     <main className="app-shell">
-      <div className="booking-shell">
+      <div className={["booking-shell", showTimeSlots ? "booking-shell-slots-open" : ""].filter(Boolean).join(" ")}>
         <EventSummary
           activeStep={activeStep}
           event={event}
@@ -255,32 +256,44 @@ export default function BookingPage({ slug }) {
           selectedTimezone={selectedTimezone}
         />
         <section className="booking-panel" aria-labelledby="booking-shell-title">
-          <p className="booking-eyebrow">Booking flow</p>
           {activeStep === "date-time" ? (
             <>
-              <h2 id="booking-shell-title">Choose a date and time</h2>
-              <CalendarMonth
-                availableDates={availableDates}
-                monthDate={visibleMonth}
-                onDateSelect={handleDateSelect}
-                onMonthChange={handleMonthChange}
-                selectedDate={selectedDate}
-              />
-              <TimezoneSelect
-                onChange={handleTimezoneChange}
-                timezones={availableTimezones}
-                value={selectedTimezone}
-              />
-              <TimeSlotList
-                error={availabilityError}
-                loading={availabilityLoading}
-                onNext={() => setActiveStep("details")}
-                onSlotSelect={setSelectedSlot}
-                selectedDate={selectedDate}
-                selectedSlot={selectedSlot}
-                slots={selectedDateSlots}
-                timezone={selectedTimezone}
-              />
+              <h2 id="booking-shell-title">Select a Date & Time</h2>
+              <div
+                className={[
+                  "date-time-layout",
+                  showTimeSlots ? "date-time-layout-with-slots" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <div className="date-time-calendar-panel">
+                  <CalendarMonth
+                    availableDates={availableDates}
+                    monthDate={visibleMonth}
+                    onDateSelect={handleDateSelect}
+                    onMonthChange={handleMonthChange}
+                    selectedDate={selectedDate}
+                  />
+                  <TimezoneSelect
+                    onChange={handleTimezoneChange}
+                    timezones={availableTimezones}
+                    value={selectedTimezone}
+                  />
+                </div>
+                {showTimeSlots ? (
+                  <TimeSlotList
+                    error={availabilityError}
+                    loading={availabilityLoading}
+                    onNext={() => setActiveStep("details")}
+                    onSlotSelect={setSelectedSlot}
+                    selectedDate={selectedDate}
+                    selectedSlot={selectedSlot}
+                    slots={selectedDateSlots}
+                    timezone={selectedTimezone}
+                  />
+                ) : null}
+              </div>
             </>
           ) : null}
           {activeStep === "details" ? (
