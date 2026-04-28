@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">Host avatar</title>
+  <desc id="desc">A simple circular host avatar.</desc>
+  <rect width="96" height="96" rx="48" fill="#E9F2FF" />
+  <circle cx="48" cy="36" r="17" fill="#1F6FEB" />
+  <path d="M21 82c4.8-15.7 14-23.6 27-23.6S70.2 66.3 75 82" fill="#1F6FEB" />
+  <circle cx="63" cy="31" r="7" fill="#41B883" />
+</svg>

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 import { fetchEventDetails } from "../api/booking.js";
 import BookingShellStatus from "../components/booking/BookingShellStatus.jsx";
-import EventDetailsPreview from "../components/booking/EventDetailsPreview.jsx";
+import EventSummary from "../components/booking/EventSummary.jsx";
 import { getDefaultInviteeTimezone } from "../utils/dateTime.js";
 
 export default function BookingPage({ slug }) {
@@ -18,7 +18,7 @@ export default function BookingPage({ slug }) {
   const [selectedDate] = useState("");
   const [selectedSlot] = useState(null);
   const [selectedTimezone, setSelectedTimezone] = useState("");
-  const [activeStep] = useState("date-time");
+  const [activeStep, setActiveStep] = useState("date-time");
   const [bookingResult] = useState(null);
 
   useEffect(() => {
@@ -86,7 +86,13 @@ export default function BookingPage({ slug }) {
   return (
     <main className="app-shell">
       <div className="booking-shell">
-        <EventDetailsPreview event={event} />
+        <EventSummary
+          activeStep={activeStep}
+          event={event}
+          onBack={() => setActiveStep("date-time")}
+          selectedSlot={selectedSlot}
+          selectedTimezone={selectedTimezone}
+        />
         <section className="booking-panel" aria-labelledby="booking-shell-title">
           <p className="booking-eyebrow">Booking flow</p>
           <h2 id="booking-shell-title">Choose a date and time</h2>
