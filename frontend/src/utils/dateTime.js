@@ -3,6 +3,20 @@ const DATE_KEY_FORMATTER_OPTIONS = {
   month: "2-digit",
   year: "numeric",
 };
+const FALLBACK_TIMEZONES = [
+  "UTC",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "Europe/London",
+  "Europe/Paris",
+  "Africa/Cairo",
+  "Asia/Dubai",
+  "Asia/Kolkata",
+  "Asia/Tokyo",
+  "Australia/Sydney",
+];
 
 function formatDate(date, timeZone, options) {
   return new Intl.DateTimeFormat("en-US", {
@@ -39,6 +53,17 @@ export function getDefaultInviteeTimezone(eventTimezone) {
   } catch {
     return eventTimezone;
   }
+}
+
+export function getAvailableTimezones(...preferredTimezones) {
+  const timezones =
+    typeof Intl.supportedValuesOf === "function"
+      ? Intl.supportedValuesOf("timeZone")
+      : FALLBACK_TIMEZONES;
+
+  return Array.from(new Set([...preferredTimezones, ...timezones].filter(Boolean))).sort((first, second) =>
+    formatTimezoneDisplay(first).localeCompare(formatTimezoneDisplay(second)),
+  );
 }
 
 export function getLocalDateKey(utcDateTime, timeZone) {

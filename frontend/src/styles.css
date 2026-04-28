@@ -150,10 +150,29 @@ body {
   color: #b42318;
 }
 
-.timezone-display {
+.timezone-select {
+  display: grid;
+  gap: 8px;
   margin: 18px 0 0;
+  color: #344054;
   font-size: 0.9rem;
   font-weight: 600;
+}
+
+.timezone-select select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #c9d0da;
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+  padding: 0 12px;
+}
+
+.timezone-select select:focus {
+  border-color: var(--accent);
+  outline: 3px solid var(--focus);
 }
 
 .calendar-month {

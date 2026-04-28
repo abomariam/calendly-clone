@@ -7,7 +7,8 @@ import BookingSuccess from "../components/booking/BookingSuccess.jsx";
 import CalendarMonth from "../components/booking/CalendarMonth.jsx";
 import EventSummary from "../components/booking/EventSummary.jsx";
 import TimeSlotList from "../components/booking/TimeSlotList.jsx";
-import { formatTimezoneDisplay, getDefaultInviteeTimezone, groupSlotsByLocalDate } from "../utils/dateTime.js";
+import TimezoneSelect from "../components/booking/TimezoneSelect.jsx";
+import { getAvailableTimezones, getDefaultInviteeTimezone, groupSlotsByLocalDate } from "../utils/dateTime.js";
 
 function getMonthStart(date = new Date()) {
   return new Date(Date.UTC(date.getFullYear(), date.getMonth(), 1));
@@ -139,6 +140,10 @@ export default function BookingPage({ slug }) {
 
   const availabilityLoading = Boolean(event) && availabilityRequest.key !== availabilityRange.key;
   const availabilityError = availabilityRequest.key === availabilityRange.key ? availabilityRequest.error : "";
+  const availableTimezones = useMemo(
+    () => (event ? getAvailableTimezones(event.timezone, selectedTimezone) : []),
+    [event, selectedTimezone],
+  );
   const slotsByDate = useMemo(() => {
     if (!selectedTimezone || availabilityRequest.key !== availabilityRange.key) {
       return {};
@@ -157,6 +162,20 @@ export default function BookingPage({ slug }) {
   const handleMonthChange = (monthDate) => {
     setVisibleMonth(monthDate);
     setSelectedDate("");
+    setSelectedSlot(null);
+    setBookingError("");
+  };
+  const handleTimezoneChange = (timezone) => {
+    const nextSlotsByDate = groupSlotsByLocalDate(availabilityRequest.slots, timezone);
+
+    setSelectedTimezone(timezone);
+    if (
+      selectedDate &&
+      availabilityRequest.key === availabilityRange.key &&
+      !nextSlotsByDate[selectedDate]
+    ) {
+      setSelectedDate("");
+    }
     setSelectedSlot(null);
     setBookingError("");
   };
@@ -247,7 +266,11 @@ export default function BookingPage({ slug }) {
                 onMonthChange={handleMonthChange}
                 selectedDate={selectedDate}
               />
-              <p className="booking-muted timezone-display">{formatTimezoneDisplay(selectedTimezone)}</p>
+              <TimezoneSelect
+                onChange={handleTimezoneChange}
+                timezones={availableTimezones}
+                value={selectedTimezone}
+              />
               <TimeSlotList
                 error={availabilityError}
                 loading={availabilityLoading}
