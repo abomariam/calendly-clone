@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { createBooking, fetchEventAvailability, fetchEventDetails } from "../api/booking.js";
 import BookingForm from "../components/booking/BookingForm.jsx";
-import BookingShellStatus from "../components/booking/BookingShellStatus.jsx";
+import BookingSuccess from "../components/booking/BookingSuccess.jsx";
 import CalendarMonth from "../components/booking/CalendarMonth.jsx";
 import EventSummary from "../components/booking/EventSummary.jsx";
 import TimeSlotList from "../components/booking/TimeSlotList.jsx";
@@ -274,20 +274,9 @@ export default function BookingPage({ slug }) {
               />
             </>
           ) : null}
-          {activeStep === "success" ? (
-            <section className="booking-success-placeholder" aria-live="polite">
-              <h2 id="booking-shell-title">Scheduled</h2>
-              <p>{bookingResult?.invitee_name}, your booking is confirmed.</p>
-            </section>
+          {activeStep === "success" && bookingResult ? (
+            <BookingSuccess booking={bookingResult} event={event} timezone={selectedTimezone} />
           ) : null}
-          <BookingShellStatus
-            activeStep={activeStep}
-            availabilityLoading={availabilityLoading}
-            bookingResult={bookingResult}
-            selectedDate={selectedDate}
-            selectedSlot={selectedSlot}
-            selectedTimezone={selectedTimezone}
-          />
         </section>
       </div>
     </main>
