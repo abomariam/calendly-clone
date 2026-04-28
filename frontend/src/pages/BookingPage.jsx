@@ -1,7 +1,8 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useMemo, useState } from "react";
 
-import { fetchEventAvailability, fetchEventDetails } from "../api/booking.js";
+import { createBooking, fetchEventAvailability, fetchEventDetails } from "../api/booking.js";
+import BookingForm from "../components/booking/BookingForm.jsx";
 import BookingShellStatus from "../components/booking/BookingShellStatus.jsx";
 import CalendarMonth from "../components/booking/CalendarMonth.jsx";
 import EventSummary from "../components/booking/EventSummary.jsx";
@@ -50,7 +51,14 @@ export default function BookingPage({ slug }) {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [selectedTimezone, setSelectedTimezone] = useState("");
   const [activeStep, setActiveStep] = useState("date-time");
-  const [bookingResult] = useState(null);
+  const [bookingResult, setBookingResult] = useState(null);
+  const [bookingFormData, setBookingFormData] = useState({
+    inviteeEmail: "",
+    inviteeName: "",
+    note: "",
+  });
+  const [bookingError, setBookingError] = useState("");
+  const [bookingSubmitting, setBookingSubmitting] = useState(false);
 
   useEffect(() => {
     let isCurrent = true;
@@ -144,11 +152,54 @@ export default function BookingPage({ slug }) {
   const handleDateSelect = (dateKey) => {
     setSelectedDate(dateKey);
     setSelectedSlot(null);
+    setBookingError("");
   };
   const handleMonthChange = (monthDate) => {
     setVisibleMonth(monthDate);
     setSelectedDate("");
     setSelectedSlot(null);
+    setBookingError("");
+  };
+  const handleBookingFormChange = (event) => {
+    const { name, value } = event.target;
+
+    setBookingFormData((currentFormData) => ({
+      ...currentFormData,
+      [name]: value,
+    }));
+    setBookingError("");
+  };
+  const handleBookingSubmit = ({ validationError }) => {
+    if (validationError) {
+      setBookingError(validationError);
+      return;
+    }
+
+    if (!selectedSlot) {
+      setBookingError("Select a time before scheduling.");
+      return;
+    }
+
+    setBookingError("");
+    setBookingSubmitting(true);
+
+    createBooking(slug, {
+      invitee_email: bookingFormData.inviteeEmail,
+      invitee_name: bookingFormData.inviteeName,
+      invitee_timezone: selectedTimezone,
+      note: bookingFormData.note,
+      starts_at: selectedSlot.starts_at,
+    })
+      .then((booking) => {
+        setBookingResult(booking);
+        setActiveStep("success");
+      })
+      .catch((error) => {
+        setBookingError(error.message || "We could not schedule this event.");
+      })
+      .finally(() => {
+        setBookingSubmitting(false);
+      });
   };
 
   if (eventLoading || (!event && !eventError)) {
@@ -186,25 +237,49 @@ export default function BookingPage({ slug }) {
         />
         <section className="booking-panel" aria-labelledby="booking-shell-title">
           <p className="booking-eyebrow">Booking flow</p>
-          <h2 id="booking-shell-title">Choose a date and time</h2>
-          <CalendarMonth
-            availableDates={availableDates}
-            monthDate={visibleMonth}
-            onDateSelect={handleDateSelect}
-            onMonthChange={handleMonthChange}
-            selectedDate={selectedDate}
-          />
-          <p className="booking-muted timezone-display">{formatTimezoneDisplay(selectedTimezone)}</p>
-          <TimeSlotList
-            error={availabilityError}
-            loading={availabilityLoading}
-            onNext={() => setActiveStep("details")}
-            onSlotSelect={setSelectedSlot}
-            selectedDate={selectedDate}
-            selectedSlot={selectedSlot}
-            slots={selectedDateSlots}
-            timezone={selectedTimezone}
-          />
+          {activeStep === "date-time" ? (
+            <>
+              <h2 id="booking-shell-title">Choose a date and time</h2>
+              <CalendarMonth
+                availableDates={availableDates}
+                monthDate={visibleMonth}
+                onDateSelect={handleDateSelect}
+                onMonthChange={handleMonthChange}
+                selectedDate={selectedDate}
+              />
+              <p className="booking-muted timezone-display">{formatTimezoneDisplay(selectedTimezone)}</p>
+              <TimeSlotList
+                error={availabilityError}
+                loading={availabilityLoading}
+                onNext={() => setActiveStep("details")}
+                onSlotSelect={setSelectedSlot}
+                selectedDate={selectedDate}
+                selectedSlot={selectedSlot}
+                slots={selectedDateSlots}
+                timezone={selectedTimezone}
+              />
+            </>
+          ) : null}
+          {activeStep === "details" ? (
+            <>
+              <h2 id="booking-shell-title">Enter details</h2>
+              <BookingForm
+                error={bookingError}
+                formData={bookingFormData}
+                onChange={handleBookingFormChange}
+                onSubmit={handleBookingSubmit}
+                selectedSlot={selectedSlot}
+                submitting={bookingSubmitting}
+                timezone={selectedTimezone}
+              />
+            </>
+          ) : null}
+          {activeStep === "success" ? (
+            <section className="booking-success-placeholder" aria-live="polite">
+              <h2 id="booking-shell-title">Scheduled</h2>
+              <p>{bookingResult?.invitee_name}, your booking is confirmed.</p>
+            </section>
+          ) : null}
           <BookingShellStatus
             activeStep={activeStep}
             availabilityLoading={availabilityLoading}
