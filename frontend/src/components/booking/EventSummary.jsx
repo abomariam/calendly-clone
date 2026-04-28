@@ -16,7 +16,7 @@ export default function EventSummary({ activeStep, event, onBack, selectedSlot, 
       ) : null}
 
       <img className="event-summary-avatar" src={hostAvatarUrl} alt="" />
-      <p className="event-summary-host">Calendly Clone</p>
+      <p className="event-summary-host">Event host</p>
       <h1 id="event-summary-title">{event.name}</h1>
 
       <div className="event-summary-meta" aria-label="Event details">

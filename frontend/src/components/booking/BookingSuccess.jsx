@@ -10,7 +10,7 @@ export default function BookingSuccess({ booking, event, timezone }) {
   return (
     <section className="booking-success" aria-labelledby="booking-success-title" aria-live="polite">
       <div className="booking-success-icon" aria-hidden="true">
-        ✓
+        OK
       </div>
       <p className="booking-eyebrow">Scheduled</p>
       <h2 id="booking-success-title">You are scheduled</h2>
