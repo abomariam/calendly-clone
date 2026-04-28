@@ -1,11 +1,12 @@
 /* eslint-disable react/prop-types */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { fetchEventDetails } from "../api/booking.js";
+import { fetchEventAvailability, fetchEventDetails } from "../api/booking.js";
 import BookingShellStatus from "../components/booking/BookingShellStatus.jsx";
 import CalendarMonth from "../components/booking/CalendarMonth.jsx";
 import EventSummary from "../components/booking/EventSummary.jsx";
-import { getDefaultInviteeTimezone } from "../utils/dateTime.js";
+import TimeSlotList from "../components/booking/TimeSlotList.jsx";
+import { formatTimezoneDisplay, getDefaultInviteeTimezone, groupSlotsByLocalDate } from "../utils/dateTime.js";
 
 function getMonthStart(date = new Date()) {
   return new Date(Date.UTC(date.getFullYear(), date.getMonth(), 1));
@@ -17,6 +18,21 @@ function getMonthStartFromDateKey(dateKey) {
   return new Date(Date.UTC(year, month - 1, 1));
 }
 
+function addMonths(date, amount) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + amount, 1));
+}
+
+function getAvailabilityRange(monthDate) {
+  const start = new Date(Date.UTC(monthDate.getUTCFullYear(), monthDate.getUTCMonth(), 1));
+  const end = addMonths(start, 1);
+
+  return {
+    end: end.toISOString(),
+    key: `${start.toISOString()}_${end.toISOString()}`,
+    start: start.toISOString(),
+  };
+}
+
 export default function BookingPage({ slug }) {
   const [eventRequest, setEventRequest] = useState({
     error: "",
@@ -24,9 +40,11 @@ export default function BookingPage({ slug }) {
     loading: true,
     slug,
   });
-  const [availabilityLoading] = useState(false);
-  const [availabilityError] = useState("");
-  const [availableDates] = useState([]);
+  const [availabilityRequest, setAvailabilityRequest] = useState({
+    error: "",
+    key: "",
+    slots: [],
+  });
   const [visibleMonth, setVisibleMonth] = useState(() => getMonthStart());
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlot, setSelectedSlot] = useState(null);
@@ -73,8 +91,63 @@ export default function BookingPage({ slug }) {
   const eventLoading = eventRequest.slug !== slug || eventRequest.loading;
   const eventError = eventRequest.slug === slug ? eventRequest.error : "";
   const event = eventRequest.slug === slug ? eventRequest.event : null;
+  const availabilityRange = useMemo(() => getAvailabilityRange(visibleMonth), [visibleMonth]);
+
+  useEffect(() => {
+    if (!event) {
+      return undefined;
+    }
+
+    let isCurrent = true;
+
+    fetchEventAvailability(slug, availabilityRange)
+      .then((availability) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setAvailabilityRequest({
+          error: "",
+          key: availabilityRange.key,
+          slots: availability.slots,
+        });
+      })
+      .catch((error) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setAvailabilityRequest({
+          error: error.message || "We could not load availability.",
+          key: availabilityRange.key,
+          slots: [],
+        });
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [availabilityRange, event, slug]);
+
+  const availabilityLoading = Boolean(event) && availabilityRequest.key !== availabilityRange.key;
+  const availabilityError = availabilityRequest.key === availabilityRange.key ? availabilityRequest.error : "";
+  const slotsByDate = useMemo(() => {
+    if (!selectedTimezone || availabilityRequest.key !== availabilityRange.key) {
+      return {};
+    }
+
+    return groupSlotsByLocalDate(availabilityRequest.slots, selectedTimezone);
+  }, [availabilityRange.key, availabilityRequest, selectedTimezone]);
+  const availableDates = useMemo(() => Object.keys(slotsByDate).sort(), [slotsByDate]);
+  const selectedDateSlots = selectedDate ? slotsByDate[selectedDate] || [] : [];
+
   const handleDateSelect = (dateKey) => {
     setSelectedDate(dateKey);
+    setSelectedSlot(null);
+  };
+  const handleMonthChange = (monthDate) => {
+    setVisibleMonth(monthDate);
+    setSelectedDate("");
     setSelectedSlot(null);
   };
 
@@ -118,11 +191,20 @@ export default function BookingPage({ slug }) {
             availableDates={availableDates}
             monthDate={visibleMonth}
             onDateSelect={handleDateSelect}
-            onMonthChange={setVisibleMonth}
+            onMonthChange={handleMonthChange}
             selectedDate={selectedDate}
           />
-          <p className="booking-muted">Available slots will load in the next step.</p>
-          {availabilityError ? <p role="alert">{availabilityError}</p> : null}
+          <p className="booking-muted timezone-display">{formatTimezoneDisplay(selectedTimezone)}</p>
+          <TimeSlotList
+            error={availabilityError}
+            loading={availabilityLoading}
+            onNext={() => setActiveStep("details")}
+            onSlotSelect={setSelectedSlot}
+            selectedDate={selectedDate}
+            selectedSlot={selectedSlot}
+            slots={selectedDateSlots}
+            timezone={selectedTimezone}
+          />
           <BookingShellStatus
             activeStep={activeStep}
             availabilityLoading={availabilityLoading}

@@ -132,6 +132,16 @@ body {
   color: #516071;
 }
 
+.booking-error {
+  color: #b42318;
+}
+
+.timezone-display {
+  margin: 18px 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .calendar-month {
   margin-top: 28px;
 }
@@ -245,6 +255,68 @@ body {
 
 .calendar-day-blank {
   aspect-ratio: 1;
+}
+
+.time-slot-empty,
+.time-slot-list {
+  margin-top: 28px;
+}
+
+.time-slot-list h3 {
+  margin: 0 0 14px;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.time-slot-options {
+  display: grid;
+  gap: 10px;
+}
+
+.time-slot-button,
+.time-slot-next {
+  min-height: 48px;
+  border: 1px solid #1f6feb;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1f6feb;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.time-slot-button:hover {
+  border-color: #174ea6;
+  background: #eef5ff;
+}
+
+.time-slot-button:focus-visible,
+.time-slot-next:focus-visible {
+  outline: 3px solid #9ec5ff;
+  outline-offset: 2px;
+}
+
+.time-slot-selected-row {
+  display: grid;
+  grid-template-columns: 1fr 0.75fr;
+  gap: 8px;
+}
+
+.time-slot-button-selected,
+.time-slot-button-selected:hover {
+  border-color: #516071;
+  background: #516071;
+  color: #ffffff;
+}
+
+.time-slot-next {
+  border-color: #1f6feb;
+  background: #1f6feb;
+  color: #ffffff;
+}
+
+.time-slot-next:hover {
+  background: #174ea6;
 }
 
 .booking-state-list {
