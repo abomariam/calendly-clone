@@ -30,6 +30,7 @@ Build a Calendly-style scheduling product with a Django REST backend, React fron
 - Add migrations when changing models.
 - Do not edit committed migration files; generate a new migration for follow-up model changes instead.
 - Manage backend dependencies with `uv` and `backend/pyproject.toml`.
+- Pin backend dependency versions exactly in `backend/pyproject.toml`.
 
 ## Frontend Conventions
 
