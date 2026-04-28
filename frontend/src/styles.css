@@ -177,20 +177,31 @@ body {
   font-weight: 600;
 }
 
-.timezone-select select {
-  width: 100%;
-  min-height: 44px;
-  border: 1px solid #c9d0da;
-  border-radius: 6px;
-  background: #ffffff;
-  color: var(--text);
-  font: inherit;
-  padding: 0 12px;
+.timezone-select-label {
+  display: block;
 }
 
-.timezone-select select:focus {
-  border-color: var(--accent);
-  outline: 3px solid var(--focus);
+.timezone-select-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  width: 100%;
+}
+
+.timezone-select-option-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timezone-select-option-time {
+  color: currentcolor;
+  font-weight: 700;
+  opacity: 0.72;
+  white-space: nowrap;
 }
 
 .date-time-layout {

@@ -116,6 +116,17 @@ export function formatTimezoneDisplay(timeZone) {
   return timeZone.replaceAll("_", " ");
 }
 
+export function formatTimezoneCurrentTime(timeZone, date = new Date()) {
+  try {
+    return formatDate(date, timeZone, {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+}
+
 export function groupSlotsByLocalDate(slots, timeZone) {
   return slots.reduce((groups, slot) => {
     const dateKey = getLocalDateKey(slot.starts_at, timeZone);
