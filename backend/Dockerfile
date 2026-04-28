@@ -20,4 +20,7 @@ RUN uv sync --no-cache
 
 COPY . .
 
+# A quick workaround to make Railway.app works.
+RUN uv run python manage.py collectstatic --noinput
+
 EXPOSE 8000
