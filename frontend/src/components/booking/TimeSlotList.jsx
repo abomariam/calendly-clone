@@ -1,5 +1,9 @@
 /* eslint-disable react/prop-types */
-import { formatSelectedDateHeading, formatSlotTimeLabel } from "../../utils/dateTime.js";
+import { useEffect, useState } from "react";
+import {
+  formatSelectedDateHeading,
+  formatSlotStartTimeLabel,
+} from "../../utils/dateTime.js";
 
 export default function TimeSlotList({
   error,
@@ -11,6 +15,35 @@ export default function TimeSlotList({
   slots,
   timezone,
 }) {
+  const selectedSlotStart = selectedSlot?.starts_at || "";
+  const [departingSlotStart, setDepartingSlotStart] = useState("");
+
+  useEffect(() => {
+    if (!departingSlotStart) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setDepartingSlotStart((currentSlotStart) => (currentSlotStart === departingSlotStart ? "" : currentSlotStart));
+    }, 280);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [departingSlotStart]);
+
+  const handleSlotSelect = (slot, isSelected) => {
+    if (isSelected) {
+      setDepartingSlotStart(slot.starts_at);
+      onSlotSelect(null);
+      return;
+    }
+
+    if (selectedSlotStart) {
+      setDepartingSlotStart(selectedSlotStart);
+    }
+
+    onSlotSelect(slot);
+  };
+
   if (!selectedDate) {
     return <p className="booking-muted time-slot-empty">Select a date to see available times.</p>;
   }
@@ -49,15 +82,54 @@ export default function TimeSlotList({
       <h3 id="time-slot-list-title">{formatSelectedDateHeading(selectedDate)}</h3>
       <div className="time-slot-options">
         {slots.map((slot) => {
-          const isSelected = selectedSlot?.starts_at === slot.starts_at;
+          const isSelected = selectedSlotStart === slot.starts_at;
+          const isDeparting = !isSelected && departingSlotStart === slot.starts_at;
 
-          if (isSelected) {
+          if (isSelected || isDeparting) {
+            const selectedRowClassName = [
+              "time-slot-selected-row",
+              isDeparting ? "time-slot-selected-row-exiting" : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
+
             return (
-              <div className="time-slot-selected-row" key={slot.starts_at}>
-                <button className="time-slot-button time-slot-button-selected" type="button" onClick={() => onSlotSelect(slot)}>
-                  {formatSlotTimeLabel(slot, timezone)}
+              <div
+                className={selectedRowClassName}
+                key={slot.starts_at}
+                onAnimationEnd={(event) => {
+                  if (event.currentTarget === event.target && isDeparting) {
+                    setDepartingSlotStart((currentSlotStart) =>
+                      currentSlotStart === slot.starts_at ? "" : currentSlotStart,
+                    );
+                  }
+                }}
+              >
+                <button
+                  aria-disabled={isDeparting || undefined}
+                  aria-pressed={isSelected}
+                  className="time-slot-button time-slot-button-selected"
+                  tabIndex={isDeparting ? -1 : undefined}
+                  type="button"
+                  onClick={() => {
+                    if (!isDeparting) {
+                      handleSlotSelect(slot, isSelected);
+                    }
+                  }}
+                >
+                  {formatSlotStartTimeLabel(slot, timezone)}
                 </button>
-                <button className="time-slot-next" type="button" onClick={onNext}>
+                <button
+                  aria-disabled={isDeparting || undefined}
+                  className="time-slot-next"
+                  tabIndex={isDeparting ? -1 : undefined}
+                  type="button"
+                  onClick={() => {
+                    if (!isDeparting) {
+                      onNext();
+                    }
+                  }}
+                >
                   Next
                 </button>
               </div>
@@ -65,8 +137,13 @@ export default function TimeSlotList({
           }
 
           return (
-            <button className="time-slot-button" key={slot.starts_at} type="button" onClick={() => onSlotSelect(slot)}>
-              {formatSlotTimeLabel(slot, timezone)}
+            <button
+              className="time-slot-button"
+              key={slot.starts_at}
+              type="button"
+              onClick={() => handleSlotSelect(slot, isSelected)}
+            >
+              {formatSlotStartTimeLabel(slot, timezone)}
             </button>
           );
         })}

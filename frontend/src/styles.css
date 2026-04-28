@@ -363,6 +363,11 @@ body {
   padding: 0 12px;
   overflow-wrap: anywhere;
   text-align: center;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
 }
 
 .time-slot-button:hover {
@@ -378,8 +383,23 @@ body {
 
 .time-slot-selected-row {
   display: grid;
-  grid-template-columns: 1fr 0.75fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.75fr);
   gap: 8px;
+  overflow: hidden;
+  animation: time-slot-row-select 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.time-slot-selected-row > * {
+  min-width: 0;
+}
+
+.time-slot-selected-row-exiting {
+  animation: time-slot-row-release 220ms ease-in forwards;
+}
+
+.time-slot-selected-row-exiting .time-slot-button,
+.time-slot-selected-row-exiting .time-slot-next {
+  pointer-events: none;
 }
 
 .time-slot-button-selected,
@@ -389,14 +409,105 @@ body {
   color: #ffffff;
 }
 
+.time-slot-selected-row:not(.time-slot-selected-row-exiting) .time-slot-button-selected {
+  animation: time-slot-selected-button-enter 220ms ease-out;
+}
+
+.time-slot-selected-row-exiting .time-slot-button-selected {
+  animation: time-slot-selected-button-release 220ms ease-in forwards;
+}
+
 .time-slot-next {
   border-color: var(--accent);
   background: var(--accent);
   color: #ffffff;
+  overflow: hidden;
+  white-space: nowrap;
+  animation: time-slot-next-enter 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.time-slot-selected-row-exiting .time-slot-next {
+  animation: time-slot-next-exit 220ms ease-in forwards;
 }
 
 .time-slot-next:hover {
   background: var(--accent-dark);
+}
+
+@keyframes time-slot-row-select {
+  from {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0fr);
+    gap: 0;
+  }
+
+  to {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.75fr);
+    gap: 8px;
+  }
+}
+
+@keyframes time-slot-row-release {
+  from {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.75fr);
+    gap: 8px;
+  }
+
+  to {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0fr);
+    gap: 0;
+  }
+}
+
+@keyframes time-slot-next-enter {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes time-slot-next-exit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+}
+
+@keyframes time-slot-selected-button-enter {
+  from {
+    border-color: var(--accent);
+    background: #ffffff;
+    color: var(--accent);
+  }
+
+  to {
+    border-color: #516071;
+    background: #516071;
+    color: #ffffff;
+  }
+}
+
+@keyframes time-slot-selected-button-release {
+  from {
+    border-color: #516071;
+    background: #516071;
+    color: #ffffff;
+  }
+
+  to {
+    border-color: var(--accent);
+    background: #ffffff;
+    color: var(--accent);
+  }
 }
 
 .booking-form {
@@ -623,11 +734,24 @@ body {
     bottom: 4px;
   }
 
-  .time-slot-selected-row {
-    grid-template-columns: 1fr;
-  }
-
   .booking-submit {
     justify-self: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .booking-shell,
+  .time-slot-button,
+  .time-slot-next {
+    transition-duration: 1ms;
+  }
+
+  .time-slot-selected-row,
+  .time-slot-selected-row:not(.time-slot-selected-row-exiting) .time-slot-button-selected,
+  .time-slot-selected-row-exiting,
+  .time-slot-selected-row-exiting .time-slot-button-selected,
+  .time-slot-selected-row-exiting .time-slot-next,
+  .time-slot-next {
+    animation-duration: 1ms;
   }
 }

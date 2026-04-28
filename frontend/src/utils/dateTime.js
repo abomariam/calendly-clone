@@ -72,19 +72,24 @@ export function getLocalDateKey(utcDateTime, timeZone) {
   return `${year}-${month}-${day}`;
 }
 
-export function formatSlotTimeLabel(slot, timeZone) {
+export function formatSlotStartTimeLabel(slot, timeZone) {
   const startsAt = new Date(slot.starts_at);
+  const timeOptions = {
+    hour: "numeric",
+    minute: "2-digit",
+  };
+
+  return formatDate(startsAt, timeZone, timeOptions);
+}
+
+export function formatSlotTimeLabel(slot, timeZone) {
   const endsAt = new Date(slot.ends_at);
   const timeOptions = {
     hour: "numeric",
     minute: "2-digit",
   };
 
-  return `${formatDate(startsAt, timeZone, timeOptions)} - ${formatDate(
-    endsAt,
-    timeZone,
-    timeOptions,
-  )}`;
+  return `${formatSlotStartTimeLabel(slot, timeZone)} - ${formatDate(endsAt, timeZone, timeOptions)}`;
 }
 
 export function formatSelectedDateHeading(dateKey) {
